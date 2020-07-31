@@ -78,40 +78,7 @@ module Homebrew
       return
     end
 
-    uses = if @use_runtime_dependents
-      used_formulae.map(&:runtime_installed_formula_dependents)
-                   .reduce(&:&)
-                   .select(&:any_version_installed?)
-    else
-      formulae = args.installed? ? Formula.installed : Formula
-      recursive = args.recursive?
-      includes, ignores = argv_includes_ignores(ARGV)
-
-      formulae.select do |f|
-        deps = if recursive
-          recursive_includes(Dependency, f, includes, ignores)
-        else
-          reject_ignores(f.deps, ignores, includes)
-        end
-
-        used_formulae.all? do |ff|
-          deps.any? do |dep|
-            match = begin
-              dep.to_formula.full_name == ff.full_name if dep.name.include?("/")
-            rescue
-              nil
-            end
-            next match unless match.nil?
-
-            dep.name == ff.name
-          end
-        rescue FormulaUnavailableError
-          # Silently ignore this case as we don't care about things used in
-          # taps that aren't currently tapped.
-          next
-        end
-      end
-    end
+    uses = intersection_of_dependents used_formulae, args.recursive?
 
     return if uses.empty?
 
