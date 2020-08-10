@@ -692,6 +692,11 @@ describe Version do
         )
     end
 
+    specify "rest-shell version style" do
+      expect(described_class.create("1.2.1"))
+        .to be_detected_from("http://download.gopivotal.com/rest-shell/1.2.1/rest-shell-1.2.1.RELEASE.tar.gz")
+    end
+
     specify "with arch" do
       expect(described_class.create("4.0.18-1"))
         .to be_detected_from("https://ftpmirror.gnu.org/mtools/mtools-4.0.18-1.i686.rpm")
