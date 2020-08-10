@@ -262,6 +262,16 @@ class Version
     version.nil? ? NULL : new(version)
   end
 
+  PATTERN1 = /(?:\d+\.)*\d+/.freeze
+  PATTERN2 = /(?:\d+\.)+\d+/.freeze
+  PATTERN3 = /\d+\.\d+(?:\.\d+)?/.freeze
+
+  TOKEN1 = /(?i:alpha|beta|pre|rc)/.freeze
+  TOKEN2 = /(?:[abc]|#{TOKEN1})/.freeze
+
+  SUFFIX1 = /[._-]?#{TOKEN1}\.?\d{,2}/.freeze
+  SUFFIX2 = /[._-](?i:bin|dist|stable|src|sources?|final|full)/.freeze
+
   def self._parse(spec)
     spec = Pathname.new(spec) unless spec.is_a? Pathname
 
@@ -287,7 +297,7 @@ class Version
     # e.g. https://github.com/sam-github/libnet/tarball/libnet-1.1.4
     # e.g. https://github.com/isaacs/npm/tarball/v0.2.5-1
     # e.g. https://github.com/petdance/ack/tarball/1.93_02
-    m = %r{github\.com/.+/(?:zip|tar)ball/(?:v|\w+-)?((?:\d+[-._])+\d*)$}.match(spec_s)
+    m = %r{github\.com/.+/(?:zip|tar)ball/(?:v|\w+-)?((?:\d+[._-])+\d*)$}.match(spec_s)
     return m.captures.first unless m.nil?
 
     # e.g. https://github.com/erlang/otp/tarball/OTP_R15B01 (erlang style)
@@ -301,13 +311,13 @@ class Version
     # e.g. foobar-4.5.1-1
     # e.g. unrtf_0.20.4-1
     # e.g. ruby-1.9.1-p243
-    m = /[-_]((?:\d+\.)*\d+\.\d+-(?:p|rc|RC)?\d+)(?:[-._](?i:bin|dist|stable|src|sources?|final|full))?$/.match(stem)
+    m = /[-_](#{PATTERN1}\.\d+-(?:p|rc|RC)?\d+)(?:#{SUFFIX2})?$/.match(stem)
     return m.captures.first unless m.nil?
 
     # URL with no extension
     # e.g. https://waf.io/waf-1.8.12
     # e.g. https://codeload.github.com/gsamokovarov/jump/tar.gz/v0.7.1
-    m = /[-v]((?:\d+\.)*\d+)$/.match(spec_s)
+    m = /[-v](#{PATTERN1})$/.match(spec_s)
     return m.captures.first unless m.nil?
 
     # e.g. lame-398-1
@@ -315,27 +325,27 @@ class Version
     return m.captures.first unless m.nil?
 
     # e.g. foobar-4.5.1
-    m = /-((?:\d+\.)*\d+)$/.match(stem)
+    m = /-(#{PATTERN1})$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. foobar-4.5.1b
-    m = /-((?:\d+\.)*\d+(?:[abc]|rc|RC)\d*)$/.match(stem)
+    m = /-(#{PATTERN1}#{TOKEN2}\d*)$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. foobar-4.5.0-alpha5, foobar-4.5.0-beta1, or foobar-4.50-beta
-    m = /-((?:\d+\.)*\d+-(?:alpha|beta|rc)\d*)$/.match(stem)
+    m = /-(#{PATTERN1}-#{TOKEN1}\d*)$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. https://ftpmirror.gnu.org/libidn/libidn-1.29-win64.zip
     # e.g. https://ftpmirror.gnu.org/libmicrohttpd/libmicrohttpd-0.9.17-w32.zip
-    m = /-(\d+\.\d+(?:\.\d+)?)-w(?:in)?(?:32|64)$/.match(stem)
+    m = /-(#{PATTERN3})-w(?:in)?(?:32|64)$/.match(stem)
     return m.captures.first unless m.nil?
 
     # Opam packages
     # e.g. https://opam.ocaml.org/archives/sha.1.9+opam.tar.gz
     # e.g. https://opam.ocaml.org/archives/lablgtk.2.18.3+opam.tar.gz
     # e.g. https://opam.ocaml.org/archives/easy-format.1.0.2+opam.tar.gz
-    m = /\.(\d+\.\d+(?:\.\d+)?)\+opam$/.match(stem)
+    m = /\.(#{PATTERN3})\+opam$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. https://ftpmirror.gnu.org/mtools/mtools-4.0.18-1.i686.rpm
@@ -343,7 +353,7 @@ class Version
     # e.g. https://ftpmirror.gnu.org/libtasn1/libtasn1-2.8-x86.zip
     # e.g. https://ftpmirror.gnu.org/libtasn1/libtasn1-2.8-x64.zip
     # e.g. https://ftpmirror.gnu.org/mtools/mtools_4.0.18_i386.deb
-    m = /[-_](\d+\.\d+(?:\.\d+)?(?:-\d+)?)[-_.](?:i[36]86|x86|x64(?:[-_](?:32|64))?)$/.match(stem)
+    m = /[-_](#{PATTERN3}(?:-\d+)?)[._-](?:i[36]86|x86|x64(?:[-_](?:32|64))?)$/.match(stem)
     return m.captures.first unless m.nil?
 
     # devel spec
@@ -351,15 +361,15 @@ class Version
     # e.g. https://github.com/dlang/dmd/archive/v2.074.0-beta1.tar.gz
     # e.g. https://github.com/dlang/dmd/archive/v2.074.0-rc1.tar.gz
     # e.g. https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-src.zip
-    m = /[-.vV]?((?:\d+\.)+\d+[-_.]?(?i:alpha|beta|pre|rc)\.?\d{,2})/.match(stem)
+    m = /[-.vV]?(#{PATTERN2}#{SUFFIX1})/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. foobar4.5.1
-    m = /((?:\d+\.)*\d+)$/.match(stem)
+    m = /(#{PATTERN1})$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. foobar-4.5.0-bin
-    m = /[-vV]((?:\d+\.)+\d+[abc]?)[-._](?i:bin|dist|stable|src|sources?|final|full)$/.match(stem)
+    m = /[-vV](#{PATTERN2}#{TOKEN2}?)#{SUFFIX2}$/.match(stem)
     return m.captures.first unless m.nil?
 
     # dash version style
@@ -368,11 +378,11 @@ class Version
     # e.g. https://search.maven.org/remotecontent?filepath=com/facebook/presto/presto-cli/0.181/presto-cli-0.181-executable.jar
     # e.g. https://search.maven.org/remotecontent?filepath=org/fusesource/fuse-extra/fusemq-apollo-mqtt/1.3/fusemq-apollo-mqtt-1.3-uber.jar
     # e.g. https://search.maven.org/remotecontent?filepath=org/apache/orc/orc-tools/1.2.3/orc-tools-1.2.3-uber.jar
-    m = /-((?:\d+\.)+\d+)-/.match(stem)
+    m = /-(#{PATTERN2})-/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. dash_0.5.5.1.orig.tar.gz (Debian style)
-    m = /_((?:\d+\.)+\d+[abc]?)[.]orig$/.match(stem)
+    m = /_(#{PATTERN2}#{TOKEN2}?)\.orig$/.match(stem)
     return m.captures.first unless m.nil?
 
     # e.g. https://www.openssl.org/source/openssl-0.9.8s.tar.gz
@@ -398,7 +408,7 @@ class Version
     return m.captures.first unless m.nil?
 
     # e.g. https://secure.php.net/get/php-7.1.10.tar.bz2/from/this/mirror
-    m = /[-.vV]?((?:\d+\.)+\d+(?:[-_.]?(?i:alpha|beta|pre|rc)\.?\d{,2})?)/.match(spec_s)
+    m = /[-.vV]?(#{PATTERN2}(?:#{SUFFIX1})?)/.match(spec_s)
     return m.captures.first unless m.nil?
   end
 
