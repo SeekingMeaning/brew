@@ -28,12 +28,12 @@ module Homebrew
 
     SPDX.download_latest_license_data!
 
-    Homebrew.failed = system("git", "diff", "--stat", "--exit-code", HOMEBREW_DATA_PATH) if args.fail_if_not_changed?
+    Homebrew.failed = system("git", "diff", "--stat", "--exit-code", SPDX::DATA_PATH) if args.fail_if_not_changed?
 
     return unless args.commit?
 
     ohai "git add"
-    safe_system "git", "add", HOMEBREW_DATA_PATH
+    safe_system "git", "add", SPDX::DATA_PATH
     ohai "git commit"
     system "git", "commit", "--message", "spdx license data: update to #{SPDX.latest_tag}"
   end

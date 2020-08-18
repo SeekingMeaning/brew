@@ -5,26 +5,25 @@ require "utils/github"
 module SPDX
   module_function
 
-  LICENSES_JSON_PATH = (HOMEBREW_DATA_PATH/"spdx_licenses.json").freeze
-  EXCEPTIONS_JSON_PATH = (HOMEBREW_DATA_PATH/"spdx_exceptions.json").freeze
+  DATA_PATH = (HOMEBREW_DATA_PATH/"spdx").freeze
   API_URL = "https://api.github.com/repos/spdx/license-list-data/releases/latest"
 
   def license_data
-    @license_data ||= JSON.parse LICENSES_JSON_PATH.read
+    @license_data ||= JSON.parse (DATA_PATH/"spdx_licenses.json").read
   end
 
   def exception_data
-    @exception_data ||= JSON.parse EXCEPTIONS_JSON_PATH.read
+    @exception_data ||= JSON.parse (DATA_PATH/"spdx_exceptions.json").read
   end
 
   def latest_tag
     @latest_tag ||= GitHub.open_api(API_URL)["tag_name"]
   end
 
-  def download_latest_license_data!(licenses_to: LICENSES_JSON_PATH, exceptions_to: EXCEPTIONS_JSON_PATH)
+  def download_latest_license_data!(to: DATA_PATH)
     data_url = "https://raw.githubusercontent.com/spdx/license-list-data/#{latest_tag}/json/"
-    curl_download("#{data_url}licenses.json", to: licenses_to, partial: false)
-    curl_download("#{data_url}exceptions.json", to: exceptions_to, partial: false)
+    curl_download("#{data_url}licenses.json", to: to/"spdx_licenses.json", partial: false)
+    curl_download("#{data_url}exceptions.json", to: to/"spdx_exceptions.json", partial: false)
   end
 
   def parse_license_expression(license_expression)

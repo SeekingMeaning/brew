@@ -40,8 +40,7 @@ describe SPDX do
     end
 
     it "downloads latest license data" do
-      described_class.download_latest_license_data! licenses_to:   tmp_json_path/"spdx_licenses.json",
-                                                    exceptions_to: tmp_json_path/"spdx_exceptions.json"
+      described_class.download_latest_license_data! to: tmp_json_path
       expect(tmp_json_path/"spdx_licenses.json").to exist
       expect(tmp_json_path/"spdx_exceptions.json").to exist
     end
