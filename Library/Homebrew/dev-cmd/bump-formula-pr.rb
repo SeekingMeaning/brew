@@ -63,7 +63,6 @@ module Homebrew
       flag   "--tag=",
              description: "Specify the new git commit <tag> for the formula."
       flag   "--revision=",
-             depends_on:  "--tag=",
              description: "Specify the new git commit <revision> corresponding to the specified <tag>."
       switch "-f", "--force",
              description: "Ignore duplicate open PRs. Remove all mirrors if --mirror= was not specified."
@@ -71,7 +70,9 @@ module Homebrew
       conflicts "--dry-run", "--write"
       conflicts "--no-audit", "--strict"
       conflicts "--url", "--tag"
+      conflicts "--url", "--revision"
       conflicts "--sha256", "--tag"
+      conflicts "--sha256", "--revision"
       max_named 1
     end
   end
@@ -181,9 +182,13 @@ module Homebrew
         EOS
       end
       check_closed_pull_requests(formula, tap_full_name, url: old_url, tag: new_tag, args: args) unless new_version
-      resource_path, forced_version = fetch_resource(formula, new_version, old_url, tag: new_tag)
-      new_revision = Utils.popen_read("git -C \"#{resource_path}\" rev-parse -q --verify HEAD")
-      new_revision = new_revision.strip
+      if new_revision
+        forced_version = new_version != Version.detect(old_url, tag: new_tag)
+      else
+        resource_path, forced_version = fetch_resource(formula, new_version, old_url, tag: new_tag)
+        new_revision = Utils.popen_read("git -C \"#{resource_path}\" rev-parse -q --verify HEAD")
+        new_revision = new_revision.strip
+      end
       false
     elsif !new_url && !new_version
       odie "#{formula}: no --url= or --version= argument specified!"
