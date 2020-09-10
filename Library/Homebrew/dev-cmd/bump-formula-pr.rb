@@ -59,7 +59,6 @@ module Homebrew
              description: "Specify the <URL> for the new download. If a <URL> is specified, the <SHA-256> "\
                           "checksum of the new download should also be specified."
       flag   "--sha256=",
-             depends_on:  "--url=",
              description: "Specify the <SHA-256> checksum of the new download."
       flag   "--tag=",
              description: "Specify the new git commit <tag> for the formula."
@@ -72,6 +71,7 @@ module Homebrew
       conflicts "--dry-run", "--write"
       conflicts "--no-audit", "--strict"
       conflicts "--url", "--tag"
+      conflicts "--sha256", "--tag"
       max_named 1
     end
   end
@@ -205,9 +205,14 @@ module Homebrew
         EOS
       end
       check_closed_pull_requests(formula, tap_full_name, url: new_url, args: args) unless new_version
-      resource_path, forced_version = fetch_resource(formula, new_version, new_url)
-      Utils::Tar.validate_file(resource_path)
-      new_hash = resource_path.sha256
+      if new_hash
+        forced_version = new_version != Version.detect(new_url)
+      else
+        resource_path, forced_version = fetch_resource(formula, new_version, new_url)
+        Utils::Tar.validate_file(resource_path)
+        new_hash = resource_path.sha256
+      end
+      true
     end
 
     replacement_pairs = []
