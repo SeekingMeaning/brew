@@ -160,4 +160,50 @@ describe FormulaInstaller do
       formula_installer.caveats
     end
   end
+
+  describe "#install_service" do
+    formula = Testball.new
+    subject(:formula_installer) { described_class.new(formula) }
+
+    it "works if plist is set" do
+      expect(formula).to receive(:plist).twice.and_return("PLIST")
+      expect(formula).to receive(:plist_path).and_call_original
+
+      formula_installer.install_service
+    end
+
+    it "works if service is set" do
+      service = Homebrew::Service.new(formula)
+
+      expect(formula).to receive(:plist).and_return(nil)
+      expect(formula).to receive(:service?).twice.and_return(true)
+      expect(formula).to receive(:service).and_return(service)
+      expect(formula).to receive(:plist_path).and_call_original
+
+      expect(service).to receive(:to_plist).and_return("plist")
+
+      formula_installer.install_service
+    end
+
+    it "returns without definition" do
+      expect(formula).to receive(:plist).and_return(nil)
+      expect(formula).to receive(:service?).twice.and_return(nil)
+      expect(formula).not_to receive(:plist_path)
+
+      formula_installer.install_service
+    end
+
+    it "errors with duplicate definition" do
+      expect(formula).to receive(:plist).and_return("plist")
+      expect(formula).to receive(:service?).and_return(true)
+      expect(formula).not_to receive(:service)
+      expect(formula).not_to receive(:plist_path)
+
+      expect {
+        formula_installer.install_service
+      }.to output("Error: Formula specified both service and plist\n").to_stderr
+
+      expect(Homebrew).to have_failed
+    end
+  end
 end
