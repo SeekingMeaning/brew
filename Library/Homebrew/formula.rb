@@ -224,6 +224,9 @@ class Formula
     @follow_installed_alias = true
     @prefix_returns_versioned_prefix = false
     @oldname_lock = nil
+
+    service.formula = self
+    service.post_initialize
   end
 
   # @private
@@ -2773,10 +2776,8 @@ class Formula
     #   run [bin/"foo"]
     # end</pre>
     def service(&block)
-      @service ||= Homebrew::Service.new(self)
+      @service ||= Homebrew::Service.new(&block)
       return @service unless block
-
-      @service.instance_eval(&block)
     end
 
     # Defines whether the {Formula}'s bottle can be used on the given Homebrew

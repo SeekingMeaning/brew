@@ -15,12 +15,21 @@ module Homebrew
 
     delegate [:bin, :var, :libexec] => :@formula
 
-    sig {params(formula: T.class_of(Formula)).void}
-    def initialize(formula)
-      @formula = formula
+    # sig {params(formula: T.class_of(Formula)).void}
+    def initialize(&block)
+      @formula = nil
       @run_type = RUN_TYPE_IMMEDIATE
+      @post_initialize = block
 
       return
+    end
+
+    def formula=(formula)
+      @formula = formula
+    end
+
+    def post_initialize
+      instance_eval(&@post_initialize)
     end
 
     sig { params(command: T.nilable(T.any(T::Array[String], String, Pathname))).returns(T.nilable(Array)) }
