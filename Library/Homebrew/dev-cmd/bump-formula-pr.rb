@@ -163,7 +163,7 @@ module Homebrew
     check_for_mirrors(formula, old_mirrors, new_mirrors, args: args) if new_url.present?
 
     hash_type, old_hash = if (checksum = formula_spec.checksum)
-      [checksum.hash_type, checksum.hexdigest]
+      [:sha256, checksum.hexdigest]
     end
 
     new_hash = args[hash_type] if hash_type.present?
