@@ -427,11 +427,10 @@ class BottleSpecification
       # Sort non-MacOS tags below MacOS tags.
       "0.#{tag}"
     end
-    checksums = {}
+    checksums = []
     tags.reverse_each do |tag|
       checksum = collector[tag]
-      checksums[:sha256] ||= []
-      checksums[:sha256] << { checksum => tag }
+      checksums << { checksum => tag }
     end
     checksums
   end
