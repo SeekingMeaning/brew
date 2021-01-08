@@ -109,7 +109,7 @@ module Utils
 
       def fetch_checksum_for(tag)
         tag = find_matching_tag(tag)
-        return self[tag], tag if tag
+        return self[tag][:checksum], tag, self[tag][:cellar] if tag
       end
 
       private

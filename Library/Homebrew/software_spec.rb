@@ -309,7 +309,7 @@ class Bottle
     @resource.specs[:bottle] = true
     @spec = spec
 
-    checksum, tag = spec.checksum_for(Utils::Bottles.tag)
+    checksum, tag, cellar = spec.checksum_for(Utils::Bottles.tag)
 
     filename = Filename.create(formula, tag, spec.rebuild)
     @resource.url("#{spec.root_url}/#{filename.bintray}",
@@ -317,7 +317,7 @@ class Bottle
     @resource.version = formula.pkg_version
     @resource.checksum = checksum
     @prefix = spec.prefix
-    @cellar = spec.cellar
+    @cellar = cellar
     @rebuild = spec.rebuild
   end
 
@@ -345,15 +345,15 @@ end
 class BottleSpecification
   extend T::Sig
 
-  attr_rw :prefix, :cellar, :rebuild
+  attr_rw :prefix, :rebuild
   attr_accessor :tap
-  attr_reader :checksum, :collector, :root_url_specs, :repository
+  attr_reader :default_cellar, :checksum, :collector, :root_url_specs, :repository
 
   sig { void }
   def initialize
     @rebuild = 0
     @prefix = Homebrew::DEFAULT_PREFIX
-    @cellar = Homebrew::DEFAULT_CELLAR
+    @default_cellar = Homebrew::DEFAULT_CELLAR
     @repository = Homebrew::DEFAULT_REPOSITORY
     @collector = Utils::Bottles::Collector.new
     @root_url_specs = {}
@@ -377,7 +377,13 @@ class BottleSpecification
     end
   end
 
+  def cellar(val)
+    @default_cellar = val
+  end
+
   def compatible_locations?
+    cellar = collector[Utils::Bottles.tag][:cellar]
+
     # this looks like it should check prefix and repository too but to be
     # `cellar :any` actually requires no references to the cellar, prefix or
     # repository.
@@ -402,7 +408,7 @@ class BottleSpecification
   # Does the {Bottle} this {BottleSpecification} belongs to need to be relocated?
   sig { returns(T::Boolean) }
   def skip_relocation?
-    cellar == :any_skip_relocation
+    collector[Utils::Bottles.tag][:cellar] == :any_skip_relocation
   end
 
   def tag?(tag)
@@ -412,8 +418,9 @@ class BottleSpecification
   # Checksum methods in the DSL's bottle block optionally take
   # a Hash, which indicates the platform the checksum applies on.
   def sha256(val)
-    digest, tag = val.shift
-    collector[tag] = Checksum.new(digest)
+    digest, tag = val.to_a.find { |k, _| k.is_a?(String) && k.match?(/^[a-f0-9]{64}$/i) }
+    cellar = val[:cellar] || default_cellar
+    collector[tag] = { checksum: Checksum.new(digest), cellar: cellar }
   end
 
   def checksum_for(tag)
@@ -427,11 +434,7 @@ class BottleSpecification
       # Sort non-MacOS tags below MacOS tags.
       "0.#{tag}"
     end
-    sha256s = []
-    tags.reverse_each do |tag|
-      checksum = collector[tag]
-      sha256s << { checksum => tag }
-    end
+    sha256s = tags.reverse.map { |tag| { collector[tag][:checksum] => tag, cellar: collector[tag][:cellar] } }
     { sha256: sha256s }
   end
 end
