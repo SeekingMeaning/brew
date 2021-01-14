@@ -1,4 +1,4 @@
-# typed: true
+# typed: strict
 # frozen_string_literal: true
 
 module Language
@@ -6,6 +6,9 @@ module Language
   #
   # @api public
   module Java
+    extend T::Sig
+
+    sig { params(version: T.nilable(String)).returns(T.nilable(Formula)) }
     def self.find_openjdk_formula(version = nil)
       can_be_newer = version&.end_with?("+")
       version = version.to_i
@@ -27,6 +30,7 @@ module Language
     end
     private_class_method :find_openjdk_formula
 
+    sig { params(version: T.nilable(String)).returns(T.nilable(Pathname)) }
     def self.java_home(version = nil)
       f = find_openjdk_formula(version)
       return f.opt_libexec if f
@@ -37,15 +41,18 @@ module Language
       req.java_home
     end
 
+    sig { params(version: T.nilable(String)).returns(String) }
     def self.java_home_shell(version = nil)
       java_home(version).to_s
     end
     private_class_method :java_home_shell
 
+    sig { params(version: T.nilable(String)).returns(T::Hash[Symbol, String]) }
     def self.java_home_env(version = nil)
       { JAVA_HOME: java_home_shell(version) }
     end
 
+    sig { params(version: T.nilable(String)).returns(T::Hash[Symbol, String]) }
     def self.overridable_java_home_env(version = nil)
       { JAVA_HOME: "${JAVA_HOME:-#{java_home_shell(version)}}" }
     end

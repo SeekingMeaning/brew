@@ -1,14 +1,18 @@
-# typed: true
+# typed: strict
 # frozen_string_literal: true
 
 module Language
   module Java
+    extend T::Sig
+
+    sig { params(version: T.nilable(String)).returns(String) }
     def self.system_java_home_cmd(version = nil)
       version_flag = " --version #{version}" if version
       "/usr/libexec/java_home#{version_flag} --failfast 2>/dev/null"
     end
     private_class_method :system_java_home_cmd
 
+    sig { params(version: T.nilable(String)).returns(T.nilable(Pathname)) }
     def self.java_home(version = nil)
       f = find_openjdk_formula(version)
       return f.opt_libexec/"openjdk.jdk/Contents/Home" if f
@@ -19,6 +23,7 @@ module Language
       Pathname.new path if path.present?
     end
 
+    sig { params(version: T.nilable(String)).returns(String) }
     def self.java_home_shell(version = nil)
       f = find_openjdk_formula(version)
       return (f.opt_libexec/"openjdk.jdk/Contents/Home").to_s if f
