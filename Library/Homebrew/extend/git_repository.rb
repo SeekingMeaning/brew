@@ -34,7 +34,7 @@ module GitRepositoryExtension
   # Gets the full commit hash of the HEAD commit.
   sig { params(safe: T::Boolean).returns(T.nilable(String)) }
   def git_head(safe: false)
-    return if !git? || !Utils::Git.available?
+    return if !safe && (!git? || !Utils::Git.available?)
 
     Utils.popen_read(Utils::Git.git, "rev-parse", "--verify", "-q", "HEAD", safe: safe, chdir: self).chomp.presence
   end
@@ -42,7 +42,7 @@ module GitRepositoryExtension
   # Gets a short commit hash of the HEAD commit.
   sig { params(length: T.nilable(Integer), safe: T::Boolean).returns(T.nilable(String)) }
   def git_short_head(length: nil, safe: false)
-    return if !git? || !Utils::Git.available?
+    return if !safe && (!git? || !Utils::Git.available?)
 
     git = Utils::Git.git
     short_arg = length&.to_s&.prepend("=")
