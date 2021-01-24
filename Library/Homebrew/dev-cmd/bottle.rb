@@ -462,22 +462,16 @@ module Homebrew
   end
 
   def merge_json_files(json_files)
-    bottles_hashes = {}
-    json_files.each do |json_content|
-      formula_name = json_content.keys.first
-
-      json_hash = json_content[formula_name]
-      platform = json_hash["bottle"]["tags"].keys.first
-      json_hash["bottle"]["tags"][platform]["cellar"] = json_hash["bottle"]["cellar"]
-
-      if bottles_hashes.key?(formula_name)
-        bottles_hashes[formula_name]["bottle"]["tags"].merge!(json_hash["bottle"]["tags"])
-      else
-        json_hash["bottle"].delete("cellar")
-        bottles_hashes[formula_name] = json_hash
+    json_files.reduce({}) do |hash, json_file|
+      json_file.each_value do |json_hash|
+        json_bottle = json_hash["bottle"]
+        cellar = json_bottle.delete("cellar")
+        json_bottle["tags"].each_value do |json_platform|
+          json_platform["cellar"] ||= cellar
+        end
       end
+      hash.deep_merge(json_file)
     end
-    bottles_hashes
   end
 
   def merge(args:)
@@ -550,12 +544,11 @@ module Homebrew
     }
 
     old_keys.each do |key|
-      next if key == :sha256
+      next if key == :sha256 || key == :cellar
 
       old_value = old_bottle_spec.send(key).to_s
       new_value = new_values[key].to_s
 
-      next if key == :cellar
       next if old_value.present? && new_value == old_value
 
       mismatches << "#{key}: old: #{old_value.inspect}, new: #{new_value.inspect}"
@@ -564,8 +557,9 @@ module Homebrew
     return [mismatches, checksums] if old_keys.exclude? :sha256
 
     old_bottle_spec.collector.each_key do |tag|
-      old_hexdigest = old_bottle_spec.collector[tag][:checksum].hexdigest
-      old_cellar = old_bottle_spec.cellar
+      old_checksum_hash = old_bottle_spec.collector[tag]
+      old_hexdigest = old_checksum_hash[:checksum].hexdigest
+      old_cellar = old_checksum_hash[:cellar]
       new_value = new_bottle_hash.dig("tags", tag.to_s)
       if new_value.present?
         mismatches << "sha256 => #{tag}"
